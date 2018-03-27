@@ -50,14 +50,17 @@ def add_objs_to_scene(nums,poses,orientations=None):
         
 def add_random_objs_to_scene(size,pos_mean=[0,0],pos_height=1,orientation_mean=[0,0,0,1]):
     nums = [random.randint(0,999) for _ in range(size)]
-    poses = [[normal(0.6,0.12),normal(scale=0.16),normal(0.05,0.05)] for _ in range(size)]#container center position (0.6,0,0)
+    poses = [[normal(0.6,0.1),normal(scale=0.16),normal(0.05,0.05)] for _ in range(size)]#container center position (0.6,0,0)
     orientations = [normal(size=(4)) for _ in range(size)]
-    pprint(nums)
-    print()
-    pprint(poses)
     objs = add_objs_to_scene(nums,poses,orientations)
     # objs = add_objs_to_scene(nums,poses)
     return objs
+
+def write_from_imgarr(imgarr,serial_number,path="sim_images/{0:0>6}.jpeg"):
+    bgra =imgarr[2]
+    img = np.reshape(bgra, (512, 640, 4)).astype(np.uint8)#BGRA
+    img = cv2.cvtColor(img,cv2.COLOR_BGRA2RGB)#RGB
+    cv2.imwrite(path.format(serial_number),img)
 
 
 def main():
@@ -79,26 +82,23 @@ def main():
 
     done = False
     #According to the hand-eye coordination paper, the camera is mounted over the shoulder of the arm
-    #TODO: find appropriate view matrix and projection matrix parameters
-    cametaEyePosition = []
-    cametaTargetPosition = []
-    cametaUpVector = []
-    left,right,bottom,top,near,far = 0,0,0,0,0,0
-
-    img = p.getCameraImage(640,512)#640*512*3 
-    print(type(img))
-    print(len(img))
-    print(type(img[0]))
-    print(type(img[1]))
-    #tuples
-    print(type(img[2]))#1310720=640*512*4
-    print(len(img[2]))
-    print(type(img[3]))#327680=
-    print(len(img[3]))
-    print(type(img[4]))#327680=640*512
-    print(len(img[4]))
-
-    # cv2.imwrite("./test.jpeg",img)
+    # camEyePos = [0.03,0.236,0.54]
+    # distance = 1.06
+    # pitch=-56
+    # yaw = 258
+    # roll=0
+    # upAxisIndex = 2
+    # camInfo = p.getDebugVisualizerCamera()
+    # viewMat = camInfo[2]
+    # viewMat = p.computeViewMatrixFromYawPitchRoll(camEyePos,distance,yaw, pitch,roll,upAxisIndex)
+    # projMatrix = camInfo[3]
+    # print(viewMat)
+    # print(projMatrix)
+    viewMat = [-0.5120397806167603, 0.7171027660369873, -0.47284144163131714, 0.0, -0.8589617609977722, -0.42747554183006287, 0.28186774253845215, 0.0, 0.0, 0.5504802465438843, 0.8348482847213745, 0.0, 0.1925382763147354, -0.24935829639434814, -0.4401884973049164, 1.0]
+    projMatrix = [0.75, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0000200271606445, -1.0, 0.0, 0.0, -0.02000020071864128, 0.0]
+    img_arr = p.getCameraImage(640,512,viewMatrix=viewMat,projectionMatrix=projMatrix)#640*512*3 
+    write_from_imgarr(img_arr, 1)
+    
     while (not done):   
         action=[]
         for motorId in motorsIds:

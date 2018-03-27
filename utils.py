@@ -97,7 +97,7 @@ def main():
         # Create a coordinator and run all QueueRunner objects
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
-        for batch_index in range(1):
+        for batch_index in range(10):
             img= sess.run(images)
             img = img.astype(np.uint8)
             # plt.imshow(img)
