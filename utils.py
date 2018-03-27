@@ -77,12 +77,13 @@ def main():
     #Approach 1 :decode from parsed features
     features = tf.parse_single_example(serialized_example, features=features)
     image = tf.image.decode_jpeg(features[fea_name],channels=3)#Camera RGB images are stored in JPEG format.
-    image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+    image = tf.image.convert_image_dtype(image, dtype=tf.uint8)
     
     #Approach 2 : decode from serialized_example directly. Any difference in this case?
     #image = tf.image.decode_jpeg(serialized_example, channels=3)
 
-    image = tf.reshape(image, [640,512,3])#(640, 512)(512, 512) random cropped to (472, 472)
+    image = tf.reshape(image, [512,640,3])#(512, 640) random cropped to (472, 472)
+    # image = tf.transpose(image, [1,2,0])
 
     #batch method 1: shuffle batch
     images = tf.train.shuffle_batch([image], batch_size=6, capacity=12, num_threads=2, min_after_dequeue=10)
