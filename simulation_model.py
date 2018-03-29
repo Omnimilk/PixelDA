@@ -54,12 +54,21 @@ def add_objs_to_scene(nums,poses,orientations=None):
     else:
         return [add_one_obj_to_scene(num,pos) for num,pos in zip(nums,poses)]
         
-def add_random_objs_to_scene(size,pos_mean=[0,0],pos_height=1,orientation_mean=[0,0,0,1]):
-    nums = [random.randint(0,999) for _ in range(size)]
-    poses = [[normal(0.64,0.14),normal(scale=0.14),-0.182] for _ in range(size)]#container center position (0.6,0,0)
-    # poses = [[uniform]]
-    orientations = [normal(size=(4)) for _ in range(size)]
-    objs = add_objs_to_scene(nums,poses,orientations)
+def add_random_objs_to_scene(size,pos_mean=[0,0],pos_height=1,orientation_mean=[0,0,0,1],use_uniform=True):
+    if use_uniform:
+        nums = [random.randint(0,999) for _ in range(size)]
+        tray_width = 0.3
+        tray_height = 0.35
+        poses = [[uniform(0.64 +0.1- tray_width,0.64 +0.1+tray_width),uniform(0-tray_height,0 +tray_height),-0.19] for _ in range(size)]#container center position (0.6,0,0)
+        # poses = [[uniform]]
+        orientations = [normal(size=(4)) for _ in range(size)]
+        objs = add_objs_to_scene(nums,poses,orientations)
+    else:
+        nums = [random.randint(0,999) for _ in range(size)]
+        poses = [[normal(0.64,0.14),normal(scale=0.14),-0.182] for _ in range(size)]#container center position (0.6,0,0)
+        # poses = [[uniform]]
+        orientations = [normal(size=(4)) for _ in range(size)]
+        objs = add_objs_to_scene(nums,poses,orientations)
     # objs = add_objs_to_scene(nums,poses)
     return objs
 
@@ -78,7 +87,8 @@ def get_randomized_ViewMat(sigma=0.01):
     mean = [0,0,0]
     cov = sigma*np.eye(3)
     camEyePos = np.array([0.03,0.236,0.54]) + np.random.multivariate_normal(mean,cov)
-    targetPos = np.array([0.640000,0.075000,-0.190000]) + np.random.multivariate_normal(mean,cov)
+    # targetPos = np.array([0.640000,0.075000,-0.190000]) + np.random.multivariate_normal(mean,cov)
+    targetPos = np.array([0.640000,0.0000,-0.190000]) + np.random.multivariate_normal(mean,cov)
     cameraUp = np.array([0,0,1])
     viewMat = p.computeViewMatrix(camEyePos,targetPos,cameraUp)
     return viewMat
@@ -142,7 +152,9 @@ def main_usingEnvOnly():
 
 def main():
     environment = KukaCamGymEnv(renders=True,isDiscrete=False)  
-    randomObjs = add_random_objs_to_scene(10)
+    num_of_objects = 50
+    num_of_objects_var = 10
+    randomObjs = add_random_objs_to_scene(num_of_objects)
     motorsIds = []
     #addUserDebugParameter(paramName,rangeMin,rangeMax,startValue)
     #return the most up-to-date reading of the parameter
@@ -162,6 +174,7 @@ def main():
     motorsIds.append(environment._p.addUserDebugParameter("yaw",-dv,dv,0))
     motorsIds.append(environment._p.addUserDebugParameter("fingerAngle",0,0.3,.3))	
     done = False
+
     try:
         with open("sim_images/serial_num_log.txt",'r') as f:
             img_serial_num = int(f.read())
@@ -170,16 +183,17 @@ def main():
         img_serial_num = 0
     step = 0
     snapshot_interval = 20
+    viewMat = get_randomized_ViewMat(sigma = 0.001)
+    camInfo = p.getDebugVisualizerCamera()
+    projMatrix = camInfo[3]
     while (not done):    
         action=[]
+        #print("step {}".format(step))
         for motorId in motorsIds:
             action.append(environment._p.readUserDebugParameter(motorId))
         if step%snapshot_interval==0:
             #get cameta image
-            print("Saving image...")
-            viewMat = get_randomized_ViewMat(std = 0.01)
-            camInfo = p.getDebugVisualizerCamera()
-            projMatrix = camInfo[3]
+            print("Saving image... Current image count: {}".format(img_serial_num))
             img_arr = p.getCameraImage(640,512,viewMatrix=viewMat,projectionMatrix=projMatrix)#640*512*3 
             write_from_imgarr(img_arr, img_serial_num)
             # np_img = environment.getExtendedObservation()#shape is not correct
@@ -192,11 +206,13 @@ def main():
         # print("done: {}, step: {}".format(done,step))
         if done:
             environment._reset()
-            randomObjs = add_random_objs_to_scene(10)
+            randomObjs = add_random_objs_to_scene(num_of_objects+uniform(-num_of_objects_var,num_of_objects_var))
+            viewMat = get_randomized_ViewMat(sigma = 0.003)#change view per try, not per image                                               
             done =False
+            print("Environment reseted!")
             with open("sim_images/serial_num_log.txt","w") as f:
                 f.write(str(img_serial_num))
 if __name__ == '__main__':
-    # main()
-    main_usingEnvOnly()
+    main()
+    #main_usingEnvOnly()
     
