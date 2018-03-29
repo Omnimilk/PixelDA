@@ -14,6 +14,7 @@ import time
 import cv2
 from pprint import pprint
 from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
+from pybullet_envs.bullet.kukaCamGymEnv import KukaCamGymEnv
 
 def add_one_obj_to_scene(num,pos=None, orientation = None, global_scaling=1):
     """
@@ -57,13 +58,17 @@ def add_random_objs_to_scene(size,pos_mean=[0,0],pos_height=1,orientation_mean=[
     return objs
 
 def write_from_imgarr(imgarr,serial_number,path="sim_images/{0:0>6}.jpeg"):
-    bgra =imgarr[2]
+    bgra =imgarr[2]#imgarr[3] depth image; imgarr[4] segmentation mask
     img = np.reshape(bgra, (512, 640, 4)).astype(np.uint8)#BGRA
     img = cv2.cvtColor(img,cv2.COLOR_BGRA2RGB)#RGB
     cv2.imwrite(path.format(serial_number),img)
 
+def write_from_npimg(npimg,serial_number,path="sim_images/{0:0>6}.jpeg"):
+    img = np.reshape(npimg, (512, 640, 4)).astype(np.uint8)#BGRA
+    img = cv2.cvtColor(img,cv2.COLOR_BGRA2RGB)#RGB
+    cv2.imwrite(path.format(serial_number),img)
 
-def main():
+def main_usingEnvOnly():
     environment = KukaGymEnv(renders=True,isDiscrete=False, maxSteps = 10000000)
     randomObjs = add_random_objs_to_scene(10)	  
     motorsIds=[]
@@ -124,6 +129,42 @@ def main():
     # cubePos, cubeOrn = p.getBasePositionAndOrientation(boxId)
     # print(cubePos,cubeOrn)
     # p.disconnect()
+
+def main():
+    environment = KukaCamGymEnv(renders=True,isDiscrete=False)  
+    randomObjs = add_random_objs_to_scene(10)
+    motorsIds = []
+    #motorsIds.append(environment._p.addUserDebugParameter("posX",0.4,0.75,0.537))
+	#motorsIds.append(environment._p.addUserDebugParameter("posY",-.22,.3,0.0))
+	#motorsIds.append(environment._p.addUserDebugParameter("posZ",0.1,1,0.2))
+	#motorsIds.append(environment._p.addUserDebugParameter("yaw",-3.14,3.14,0))
+	#motorsIds.append(environment._p.addUserDebugParameter("fingerAngle",0,0.3,.3))
+    dv = 1 
+    motorsIds.append(environment._p.addUserDebugParameter("posX",-dv,dv,0))
+    motorsIds.append(environment._p.addUserDebugParameter("posY",-dv,dv,0))
+    motorsIds.append(environment._p.addUserDebugParameter("posZ",-dv,dv,0))
+    motorsIds.append(environment._p.addUserDebugParameter("yaw",-dv,dv,0))
+    motorsIds.append(environment._p.addUserDebugParameter("fingerAngle",0,0.3,.3))	
+    done = False
+    img_serial_num = 0
+    step = 0
+    snapshot_interval = 20
+    while (not done):    
+        action=[]
+        for motorId in motorsIds:
+            action.append(environment._p.readUserDebugParameter(motorId))
+        if step%snapshot_interval==0:
+            #get cameta image
+            viewMat = [-0.5120397806167603, 0.7171027660369873, -0.47284144163131714, 0.0, -0.8589617609977722, -0.42747554183006287, 0.28186774253845215, 0.0, 0.0, 0.5504802465438843, 0.8348482847213745, 0.0, 0.1925382763147354, -0.24935829639434814, -0.4401884973049164, 1.0]
+            projMatrix = [0.75, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0000200271606445, -1.0, 0.0, 0.0, -0.02000020071864128, 0.0]
+            img_arr = p.getCameraImage(640,512,viewMatrix=viewMat,projectionMatrix=projMatrix)#640*512*3 
+            write_from_imgarr(img_arr, img_serial_num)
+            # np_img = environment.getExtendedObservation()#shape is not correct
+            # write_from_npimg(np_img,img_serial_num)
+            img_serial_num +=1
+        step +=1
+        state, reward, done, info = environment.step(action)
+        obs = environment.getExtendedObservation()
 if __name__ == '__main__':
     main()
     
