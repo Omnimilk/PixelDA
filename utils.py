@@ -62,9 +62,9 @@ def main():
         path_exists = tf.gfile.Exists(data_path[0])
         if not path_exists:
             print("Broken path! {}".format(path))
-    # print(data_path)
+    print(data_path)
     # data_path = ['Data/tfdata/grasping_dataset_060.tfrecord-00000-of-00022']
-    fea_name = "grasp/0/image/encoded"
+    fea_name = "present/image/encoded"#"post_drop/image/encoded"#"grasp/1/image/encoded"#"grasp/image/encoded"#"grasp/0/image/encoded"
     features = {fea_name: tf.FixedLenFeature([], tf.string)}
     
     # Create a list of filenames and pass it to a queue
@@ -97,7 +97,7 @@ def main():
         # Create a coordinator and run all QueueRunner objects
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
-        for batch_index in range(10):
+        for batch_index in range(30):
             img= sess.run(images)
             img = img.astype(np.uint8)
             # plt.imshow(img)
