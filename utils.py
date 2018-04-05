@@ -5,10 +5,13 @@ from random import shuffle
 import glob
 import os
 import csv
+from pprint import pprint
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 feature_key_path = "Data/features_060.csv"
-data_folder = "Data/tfdata"
-file_tail = "22"
+#data_folder = "Data/tfdata"
+#file_tail = "22"
+data_folder = "Data/tfdata1"
+file_tail = "34"
 
 def read_feature_names(csv_path):
     """
@@ -56,7 +59,9 @@ def get_data_paths(data_folder, file_tail):
 
 def main():    
     feature_names = read_feature_names(feature_key_path)
-    data_path = get_data_paths(data_folder,file_tail)
+    #data_path = get_data_paths(data_folder,file_tail)
+    pprint(feature_names)
+    return
 
     for path in data_path:
         path_exists = tf.gfile.Exists(data_path[0])
@@ -69,8 +74,8 @@ def main():
     
     # Create a list of filenames and pass it to a queue
     filename_queue = tf.train.string_input_producer(data_path,shuffle=True, num_epochs=2)
-    print(type(filename_queue))
-    print(filename_queue.shapes)
+    #print(type(filename_queue))
+    #print(filename_queue.shapes)
     reader = tf.TFRecordReader()
     _, serialized_example = reader.read(filename_queue)
 
