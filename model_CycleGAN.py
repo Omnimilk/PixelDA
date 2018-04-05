@@ -42,7 +42,9 @@ class CycleGAN:
     self.use_lsgan = use_lsgan
     use_sigmoid = not use_lsgan
     self.batch_size = batch_size
+    #print("passed image size {}".format(image_size))
     self.image_size = image_size
+    #print("CycleGAN model image size {}".format(self.image_size))
     self.learning_rate = learning_rate
     self.beta1 = beta1
     self.X_train_file = X_train_file
@@ -70,7 +72,6 @@ class CycleGAN:
 
     x = X_reader.feed()
     y = Y_reader.feed()
-
     cycle_loss = self.cycle_consistency_loss(self.G, self.F, x, y)
 
     # X -> Y

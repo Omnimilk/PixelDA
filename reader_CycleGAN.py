@@ -2,9 +2,10 @@ import tensorflow as tf
 import utils_CycleGAN as utils
 from utils import read_feature_names,get_data_paths
 import numpy as np
+from pprint import pprint
 
 class Reader():
-  def __init__(self, tfrecords_file, image_size=np.array([512,640]),
+  def __init__(self, tfrecords_file, image_size=np.array([128,160]),
     min_queue_examples=1000, batch_size=8, num_threads=8, name=''):
     """
     Args:
@@ -48,8 +49,10 @@ class Reader():
     return images
 
   def _preprocess(self, image):
-    image = tf.image.resize_images(image, size=(self.image_size[0], self.image_size[1]))
+    image = tf.random_crop(image,[448,560,3])#add random crop
+    image = tf.image.resize_images(image, size=self.image_size)
     image = utils.convert2float(image)
+    #print("self image size: {}".format(self.image_size))
     image.set_shape([self.image_size[0], self.image_size[1], 3])
     return image
 
@@ -63,16 +66,36 @@ class SplitedReader(Reader):
       filename_queue = tf.train.string_input_producer(self.tfrecords_file)#a list of file path
       reader = tf.TFRecordReader()
       _, serialized_example = self.reader.read(filename_queue)
-      # features_dict={
+      #some useful non-image features: "num_grasp_steps", "camera/intrinsics/matrix33"
+      features_dict = {
+      "grasp/0/image/encoded": tf.FixedLenFeature([],tf.string),
+      "grasp/1/image/encoded": tf.FixedLenFeature([],tf.string),
+      "grasp/2/image/encoded": tf.FixedLenFeature([],tf.string),
+      "grasp/3/image/encoded": tf.FixedLenFeature([],tf.string),
+      "grasp/4/image/encoded": tf.FixedLenFeature([],tf.string),
+      "grasp/5/image/encoded": tf.FixedLenFeature([],tf.string),
+      "grasp/6/image/encoded": tf.FixedLenFeature([],tf.string),
+      "grasp/7/image/encoded": tf.FixedLenFeature([],tf.string),
+      "grasp/8/image/encoded": tf.FixedLenFeature([],tf.string),
+      "grasp/9/image/encoded": tf.FixedLenFeature([],tf.string),
+      "gripper/image/encoded": tf.FixedLenFeature([],tf.string),
+      "post_drop/image/encoded": tf.FixedLenFeature([],tf.string),
+      "post_grasp/image/encoded": tf.FixedLenFeature([],tf.string),
+      "present/image/encoded": tf.FixedLenFeature([],tf.string)
+      }
+
+     # features_dict={
       #       "present/image/encoded": tf.FixedLenFeature([], tf.string),
-      #       "post_drop/image/encoded": tf.FixedLenFeature([], tf.string),
-      #        "grasp/1/image/encoded": tf.FixedLenFeature([], tf.string),
-      #         "grasp/image/encoded": tf.FixedLenFeature([], tf.string),
-      #         "grasp/0/image/encoded": tf.FixedLenFeature( [], tf.string)
-      #     }
-      features_dict={
-              "grasp/0/image/encoded": tf.FixedLenFeature( [], tf.string)
-          }
+       #      "post_drop/image/encoded": tf.FixedLenFeature([], tf.string),
+        #      "grasp/1/image/encoded": tf.FixedLenFeature([], tf.string),
+         #      "grasp/image/encoded": tf.FixedLenFeature([], tf.string),
+          #     "grasp/0/image/encoded": tf.FixedLenFeature( [], tf.string)
+           #}
+      
+      # features_dict={          
+      #          "grasp/0/image/encoded": tf.FixedLenFeature( [], tf.string)
+      #      }
+      
       features = tf.parse_single_example(
           serialized_example,features = features_dict
           )
@@ -87,21 +110,22 @@ class SplitedReader(Reader):
             capacity=self.min_queue_examples + 3*self.batch_size,
             min_after_dequeue=self.min_queue_examples
           )
-      # print("Splitted feed type: {g}".format(images))
+      #images is a list of image batches now, randomly choose one as the data
+      images = np.random.choice(images)
       tf.summary.image('_input', images)
     return images
 
-
-
 def test_reader():
-  TRAIN_FILE_1 = 'data/tfrecords/apple.tfrecords'
-  TRAIN_FILE_2 = 'data/tfrecords/orange.tfrecords'
-
+  #TRAIN_FILE_1 = 'sim_images_a1_low_var.tfrecords'
+  #TRAIN_FILE_2 = 'sim_images_a2_low_var.tfrecords'
+  TRAIN_FILE_1 = get_data_paths("Data/tfdata1","34")
+  # pprint(TRAIN_FILE_1)
   with tf.Graph().as_default():
-    reader1 = Reader(TRAIN_FILE_1, batch_size=2)
-    reader2 = Reader(TRAIN_FILE_2, batch_size=2)
+    reader1 = SplitedReader(TRAIN_FILE_1, batch_size=2)
+    #reader1 = Reader(TRAIN_FILE_1, batch_size=2)
+    #reader2 = Reader(TRAIN_FILE_2, batch_size=2)
     images_op1 = reader1.feed()
-    images_op2 = reader2.feed()
+    #images_op2 = reader2.feed()
 
     sess = tf.Session()
     init = tf.global_variables_initializer()
@@ -113,9 +137,10 @@ def test_reader():
     try:
       step = 0
       while not coord.should_stop():
-        batch_images1, batch_images2 = sess.run([images_op1, images_op2])
+        #batch_images1, batch_images2 = sess.run([images_op1, images_op2])
+        batch_images1= sess.run(images_op1)
         print("image shape: {}".format(batch_images1))
-        print("image shape: {}".format(batch_images2))
+        #print("image shape: {}".format(batch_images2))
         print("="*10)
         step += 1
     except KeyboardInterrupt:

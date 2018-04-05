@@ -9,7 +9,7 @@ import numpy as np
 
 FLAGS = tf.flags.FLAGS
 
-tf.flags.DEFINE_integer('batch_size', 8, 'batch size, default: 1')
+tf.flags.DEFINE_integer('batch_size', 1, 'batch size, default: 1')
 tf.flags.DEFINE_bool('use_lsgan', True,
                      'use lsgan (mean squared error) or cross entropy loss, default: True')
 tf.flags.DEFINE_string('norm', 'instance',
@@ -46,9 +46,12 @@ def train():
     except os.error:
       pass
 
-  data_folder = "Data/tfdata"
-  file_tail = "22"
+  # data_folder = "Data/tfdata"
+  # file_tail = "22"
+  data_folder = "Data/tfdata1"
+  file_tail = "34"
   target_path = get_data_paths(data_folder,file_tail)
+  # print(target_path)
 
   graph = tf.Graph()
   with graph.as_default():
@@ -57,7 +60,7 @@ def train():
         #Y_train_file=FLAGS.Y,
         Y_train_file= target_path,
         batch_size=FLAGS.batch_size,
-        image_size=np.array([512,640]),
+        image_size=np.array([128,160]),
         use_lsgan=FLAGS.use_lsgan,
         norm=FLAGS.norm,
         lambda1=FLAGS.lambda1,
