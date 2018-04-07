@@ -55,59 +55,76 @@ def get_data_paths(data_folder, file_tail):
     return data_path
 
 def main():    
-    feature_names = read_feature_names(feature_key_path)
+    # feature_names = read_feature_names(feature_key_path)
     data_path = get_data_paths(data_folder,file_tail)
 
     for path in data_path:
         path_exists = tf.gfile.Exists(data_path[0])
         if not path_exists:
             print("Broken path! {}".format(path))
-    print(data_path)
-    # data_path = ['Data/tfdata/grasping_dataset_060.tfrecord-00000-of-00022']
-    fea_name = "present/image/encoded"#"post_drop/image/encoded"#"grasp/1/image/encoded"#"grasp/image/encoded"#"grasp/0/image/encoded"
-    features = {fea_name: tf.FixedLenFeature([], tf.string)}
+
+    #matrix feature
+    # fea_name = "camera/intrinsics/matrix33"# "camera/transforms/camera_T_base/matrix44"
+    # features = {fea_name: tf.FixedLenFeature([3,3], tf.float32)}
+    # filename_queue = tf.train.string_input_producer(data_path,shuffle=True, num_epochs=2)
+    # reader = tf.TFRecordReader()
+    # _, serialized_example = reader.read(filename_queue)
+    # features = tf.parse_single_example(serialized_example, features=features)
+    # camera_params = features[fea_name]
+    # camera_params = tf.train.shuffle_batch([camera_params], batch_size=1, capacity=12, num_threads=2, min_after_dequeue=10)
+    # with tf.Session() as sess: 
+    #     #initialize variables 
+    #     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+    #     sess.run(init_op)
+    #     # Create a coordinator and run all QueueRunner objects
+    #     coord = tf.train.Coordinator()
+    #     threads = tf.train.start_queue_runners(coord=coord)
+    #     ca_param =sess.run(camera_params)
+    #     print(ca_param)
+    #     coord.request_stop()
+    #     coord.join(threads)
+        # fea_name = "camera/intrinsics/matrix33"
+        #     [[
+        #       [ 775.71899414    0.            0.        ]
+        #       [   0.          775.71899414    0.        ]
+        #       [ 335.3380127   232.45100403    1.        ]
+        #     ]]
     
-    # Create a list of filenames and pass it to a queue
+        # fea_name = "camera/transforms/camera_T_base/matrix44"
+        #     [[
+        #       [-0.0210269  -0.99247903  0.120598    0.26878399]
+        #       [-0.88814598 -0.0368459  -0.45808199  0.293412  ]
+        #       [ 0.45908001 -0.116741   -0.88069099  0.71057898]
+        #       [ 0.          0.          0.          1.        ]
+        #     ]]
+
+    #image feature
+    fea_name = "grasp/0/image/encoded"
+    features  = {}
+    features = {fea_name: tf.FixedLenFeature([], tf.string)}
     filename_queue = tf.train.string_input_producer(data_path,shuffle=True, num_epochs=2)
-    print(type(filename_queue))
-    print(filename_queue.shapes)
     reader = tf.TFRecordReader()
     _, serialized_example = reader.read(filename_queue)
-
-    #Approach 1 :decode from parsed features
     features = tf.parse_single_example(serialized_example, features=features)
     image = tf.image.decode_jpeg(features[fea_name],channels=3)#Camera RGB images are stored in JPEG format.
     image = tf.image.convert_image_dtype(image, dtype=tf.uint8)
-    
-    #Approach 2 : decode from serialized_example directly. Any difference in this case?
-    #image = tf.image.decode_jpeg(serialized_example, channels=3)
-
     image = tf.reshape(image, [512,640,3])#(512, 640) random cropped to (472, 472)
-    # image = tf.transpose(image, [1,2,0])
-
-    #batch method 1: shuffle batch
     images = tf.train.shuffle_batch([image], batch_size=6, capacity=12, num_threads=2, min_after_dequeue=10)
-    #batch method 2: batch
-    # images = tf.train.batch([image], batch_size=6, capacity=12, num_threads=2)
 
     with tf.Session() as sess:   
         #initialize variables 
         init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         sess.run(init_op)
-        # Create a coordinator and run all QueueRunner objects
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
-        for batch_index in range(30):
-            img= sess.run(images)
-            img = img.astype(np.uint8)
-            # plt.imshow(img)
+        for batch_index in range(1):
+            imgs= sess.run(images)
+            imgs = imgs.astype(np.uint8)
             for j in range(6):
                 plt.subplot(2, 3, j + 1)
-                plt.imshow(img[j, ...])
+                plt.imshow(imgs[j, ...])
             plt.show()
-        # Stop the threads
         coord.request_stop()
-        # # Wait for threads to stop
         coord.join(threads)
         
 if __name__ == '__main__':
